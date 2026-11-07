@@ -6,7 +6,7 @@ BUILD_DIR = build
 
 all:
 	mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) include/wares.h src/main.c -o $(BUILD_DIR)/wares $(LDFLAGS)
+	$(CC) $(CFLAGS) src/main.c src/mmu.c src/cpu.c -o $(BUILD_DIR)/wares $(LDFLAGS)
 
 clean: 
 	rm -rf $(BUILD_DIR)

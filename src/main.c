@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <SDL3/SDL.h>
+#include "mmu.h"
+#include "cpu.h"
 
 
 #define GB_WIDTH 160
@@ -18,6 +20,13 @@ int main(int argc, char* argv[]) {
 	const char* rom_path = argv[1];
 	printf("Attempting to load ROM: %s\n", rom_path);
 
+	MMU mmu;
+	mmu_init(&mmu);
+	if (!mmu_load_rom(&mmu, rom_path)) { return 1; }
+
+	CPU cpu;
+	cpu_init(&cpu);
+
 	if (!SDL_Init(SDL_INIT_VIDEO)) {
 		SDL_Log("SDL_Init failed: %s\n", SDL_GetError());
 		return 1;
@@ -29,7 +38,7 @@ int main(int argc, char* argv[]) {
 			GB_HEIGHT * SCALE,
 			SDL_WINDOW_RESIZABLE
 			);
-	
+
 	if (!window) {
 		SDL_Log("SDL_CreateWindow failed: %s\n", SDL_GetError());
 		SDL_Quit();
@@ -54,12 +63,16 @@ int main(int argc, char* argv[]) {
 				running = false;
 			}
 		}
-	
-		SDL_SetRenderDrawColor(renderer, 32, 32, 32, 255); //painting grey for now
-        SDL_RenderClear(renderer);
-        SDL_RenderPresent(renderer);
 
-        SDL_Delay(16);
+		for (int i = 0; i < 1000; i++) {
+			cpu_step(&cpu, &mmu);
+		}
+
+		SDL_SetRenderDrawColor(renderer, 32, 32, 32, 255);
+		SDL_RenderClear(renderer);
+		SDL_RenderPresent(renderer);
+
+		SDL_Delay(16);
 	}
 
 
