@@ -162,6 +162,15 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->cycles += 12;
 			break;
 		}
+		case 0x31: // LD SP, d16
+		{
+			uint8_t low = mmu_read_byte(mmu, cpu->pc++); 
+			uint8_t high = mmu_read_byte(mmu, cpu->pc++);
+
+			cpu->sp = (high << 8) | low;
+			cpu->cycles += 12;
+			break;
+		}
 		case 0x47: // LD B, A
 		{
 			cpu->b = cpu->a;
