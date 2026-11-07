@@ -72,6 +72,25 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 		case 0x00: // NOP
 			cpu->cycles += 4;
 			break;
+		case 0x01: //LD BC, d16
+        {
+            uint8_t low = mmu_read_byte(mmu, cpu ->pc);
+            uint8_t high = mmu_read_byte(mmu, cpu->pc + 1);
+
+            cpu->bc = (high << 8) | low;
+            cpu->pc += 2;
+            cpu->cycles += 12;
+            break;
+        }
+		case 0x03: // INC BC
+        {
+            uint16_t bc = ((uint16_t)cpu->b << 8) | cpu->c;
+            bc++;
+            cpu->b = (bc>>8) & 0xFF;
+            cpu->c = bc & 0xFF;
+            cpu->cycles += 8;
+            break;
+        }
 		case 0x0D: //DEC C
 		{
 			cpu->c = cpu_dec_r8(cpu, cpu->c);
@@ -169,6 +188,15 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->cycles += 12;
 			break;
 		}
+		case 0x23: // INC HL
+		{
+			uint16_t hl = ((uint16_t)cpu->h << 8) | cpu->l;
+			hl++;
+			cpu->h = (hl>>8) & 0xFF;
+			cpu->l = hl & 0xFF;
+			cpu->cycles += 8;
+			break;
+		}
 		case 0x31: // LD SP, d16
 		{
 			uint8_t low = mmu_read_byte(mmu, cpu->pc++); 
@@ -202,6 +230,14 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->cycles += 4;
 			break;
 		}
+        case 0xC5: // PUSH BC
+        {
+            cpu->sp -= 2;
+            mmu_write_byte(mmu, cpu->sp + 1, cpu->b);
+            mmu_write_byte(mmu, cpu->sp, cpu->c & 0xF0); // force lower 4 bits to 0
+            cpu->cycles += 16;
+            break;
+        }
 		case 0xC9: // RET
 		{
 			uint8_t low = mmu_read_byte(mmu, cpu->sp);
@@ -235,6 +271,14 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->cycles += 12;
 			break;
 		}
+		case 0xE1: // POP HL
+		{
+			cpu->l = mmu_read_byte(mmu, cpu->sp);
+			cpu->h = mmu_read_byte(mmu, cpu->sp + 1);
+			cpu->sp += 2;
+			cpu->cycles += 12;
+			break;
+		}
 		case 0xE5: // PUSH HL
 		{
 			cpu->sp -= 2;
@@ -253,10 +297,26 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->cycles += 16;
 			break;
 		}
+        case 0xF1: // POP AF
+        {
+            cpu->f = mmu_read_byte(mmu, cpu->sp);
+            cpu->a = mmu_read_byte(mmu, cpu->sp + 1);
+            cpu->sp += 2;
+            cpu->cycles += 12;
+            break;
+        }
 		case 0xF3: // DI
 		{
 			cpu->ime = false;
 			cpu->cycles += 4;
+			break;
+		}
+		case 0xF5: // PUSH AF
+		{
+			cpu->sp -= 2;
+			mmu_write_byte(mmu, cpu->sp + 1, cpu->a);
+			mmu_write_byte(mmu, cpu->sp, cpu->f & 0xF0); // force lower 4 bits to 0
+			cpu->cycles += 16;
 			break;
 		}
 		default:
