@@ -138,6 +138,13 @@ void cpu_step(CPU* cpu, MMU* mmu) {
             cpu->cycles += 12;
             break;
 		}
+		case 0x18: // JR r8
+		{
+			int8_t offset = (int8_t)mmu_read_byte(mmu, cpu->pc++);
+			cpu->pc += offset;
+			cpu->cycles += 12;
+			break;
+		}
 		case 0x20: //JR NZ, r8
 		{
 			int8_t offset = (int8_t)mmu_read_byte(mmu, cpu->pc);
@@ -179,8 +186,71 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 		}
 		case 0x78: // LD A, B
 		{
-			cpu->b = cpu->a;
+			cpu->a = cpu->b;
 			cpu->cycles += 4;
+			break;
+		}
+		case 0x7C: // LD A, H
+		{
+			cpu->a = cpu->h;
+			cpu->cycles += 4;
+			break;
+		}
+		case 0x7D: // LD A, L
+		{
+			cpu->a = cpu->l;
+			cpu->cycles += 4;
+			break;
+		}
+		case 0xC9: // RET
+		{
+			uint8_t low = mmu_read_byte(mmu, cpu->sp);
+			uint8_t high = mmu_read_byte(mmu, cpu->sp + 1);
+			cpu->sp += 2;
+
+			cpu->pc = (high << 8) | low;
+			cpu->cycles += 16;
+			break;
+		}
+		case 0xCD: // CALL a16
+		{
+			uint8_t low = mmu_read_byte(mmu, cpu->pc++);
+			uint8_t high = mmu_read_byte(mmu, cpu->pc++);
+			uint16_t target = (high << 8) | low;
+
+			cpu->sp -= 2; //push current pc into stack
+			mmu_write_byte(mmu, cpu->sp + 1, (cpu->pc >> 8) & 0xFF);
+			mmu_write_byte(mmu, cpu->sp, cpu->pc & 0xFF);
+
+			cpu->pc = target; //jump to target
+			cpu->cycles += 24;
+			break;
+		}
+		case 0xE0: //LDH (a8), A
+		{
+			uint8_t offset = mmu_read_byte(mmu, cpu->pc++);
+			uint16_t address = 0xFF00 | offset;
+
+			mmu_write_byte(mmu, address, cpu->a);
+			cpu->cycles += 12;
+			break;
+		}
+		case 0xE5: // PUSH HL
+		{
+			cpu->sp -= 2;
+			mmu_write_byte(mmu, cpu->sp + 1, cpu->h);
+			mmu_write_byte(mmu, cpu->sp, cpu->l);
+			cpu->cycles += 16;
+			break;
+		}
+		case 0xEA: //LD (a16), A
+		{
+			uint8_t low = mmu_read_byte(mmu, cpu->pc++);
+			uint8_t high = mmu_read_byte(mmu, cpu->pc++);
+			uint16_t address = (high << 8) | low;
+
+			mmu_write_byte(mmu, address, cpu->a);
+			cpu->cycles += 16;
 			break;
 		}
 		case 0xF3: // DI
