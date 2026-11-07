@@ -14,25 +14,25 @@ void cpu_init(CPU* cpu) {
 // HELPER FUNCTIONS
 
 static uint8_t cpu_inc_r8(CPU* cpu, uint8_t val) {
-			val++;
+	val++;
 			
-			// Z Flag: Set if E is 0
-			if (cpu->e == 0) {
-				cpu->f |= FLAG_Z;
-			} else {
-				cpu->f &= ~FLAG_Z;
-			}
-			
-			cpu->f &= ~FLAG_N; //N Flag: reset to 0
+	// Z Flag: Set if E is 0
+	if (val == 0) {
+		cpu->f |= FLAG_Z;
+	} else {
+		cpu->f &= ~FLAG_Z;
+	}
 
-			//H Flag: Set if there's carry from bit 3 -> 4
-			if ((cpu->e & 0x0F) == 0) {
-				cpu->f |= FLAG_H;
-			} else {
-				cpu->f &= ~FLAG_H;
-			}
+	cpu->f &= ~FLAG_N; //N Flag: reset to 0
 
-			return val;
+	//H Flag: Set if there's carry from bit 3 -> 4
+	if ((val & 0x0F) == 0) {
+		cpu->f |= FLAG_H;
+	} else {
+		cpu->f &= ~FLAG_H;
+	}
+
+	return val;
 }
 
 
@@ -64,6 +64,7 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 	uint16_t current_pc = cpu->pc;
 
 	uint8_t opcode = mmu_read_byte(mmu, cpu->pc);
+	// printf("PC: 0x%04X | Opcode: 0x%02X\n", cpu->pc - 1, opcode);
 	cpu->pc++;
 
 	switch (opcode) {

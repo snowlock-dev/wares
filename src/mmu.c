@@ -37,5 +37,10 @@ void mmu_write_byte(MMU* mmu, uint16_t address, uint8_t value) {
 	if (address < 0x8000) {
 		return;
 	}
+
+	if (address == 0xFF01) {
+		putchar(value); //print characters sent by test rom
+		fflush(stdout);
+	}
 	mmu->ram[address] = value;
 }
