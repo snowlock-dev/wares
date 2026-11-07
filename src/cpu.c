@@ -14,6 +14,13 @@ void cpu_init(CPU* cpu) {
 
 // HELPER FUNCTIONS
 
+static void cpu_or_r8(CPU* cpu, uint8_t val) {
+	cpu->a |= val;
+
+	cpu->f = 0;
+	if (cpu->a == 0) { cpu->f |= FLAG_Z; }
+}
+
 static uint8_t cpu_inc_r8(CPU* cpu, uint8_t val) {
 	val++;
 			
@@ -197,6 +204,17 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->cycles += 8;
 			break;
 		}
+		case 0x28: // JR Z, r8
+		{
+			int8_t offset = (int8_t)mmu_read_byte(mmu, cpu->pc++);
+			if (cpu->f & FLAG_Z) {
+				cpu->pc += offset;
+				cpu->cycles += 12;
+			} else {
+				cpu->cycles += 8;
+			}
+			break;
+		}
 		case 0x31: // LD SP, d16
 		{
 			uint8_t low = mmu_read_byte(mmu, cpu->pc++); 
@@ -227,6 +245,12 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 		case 0x7D: // LD A, L
 		{
 			cpu->a = cpu->l;
+			cpu->cycles += 4;
+			break;
+		}
+		case 0xB1: // OR C
+		{
+			cpu_or_r8(cpu, cpu->c);
 			cpu->cycles += 4;
 			break;
 		}
@@ -297,7 +321,16 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->cycles += 16;
 			break;
 		}
-        case 0xF1: // POP AF
+        case 0xF0: //LDH A, (a8)
+        {
+            uint8_t offset = mmu_read_byte(mmu, cpu->pc++);
+            uint16_t address = 0xFF00 | offset;
+
+            cpu->a = mmu_read_byte(mmu, address);
+            cpu->cycles += 12;
+            break;
+        }        
+		case 0xF1: // POP AF
         {
             cpu->f = mmu_read_byte(mmu, cpu->sp);
             cpu->a = mmu_read_byte(mmu, cpu->sp + 1);
