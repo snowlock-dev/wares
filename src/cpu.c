@@ -11,6 +11,9 @@ void cpu_init(CPU* cpu) {
 	cpu->pc = 0x0100; // Boot ROM entry point
 }
 
+// HELPER FUNCTIONS
+
+
 void cpu_step(CPU* cpu, MMU* mmu) {
 	uint16_t current_pc = cpu->pc;
 
@@ -91,6 +94,20 @@ void cpu_step(CPU* cpu, MMU* mmu) {
             cpu->pc += 2;
             cpu->cycles += 12;
             break;
+		}
+		case 0x20: //JR NZ, r8
+		{
+			int8_t offset = (int8_t)mmu_read_byte(mmu, cpu->pc);
+			cpu->pc++; //advance past the offset byte
+
+			//check if zero flag is not set
+			if ((cpu->f & FLAG_Z) == 0) {
+				cpu->pc += offset;
+				cpu->cycles += 12;
+			} else {
+				cpu->cycles += 8;
+			}
+			break;
 		}
 		case 0x21: // LD HL, d16
 		{
