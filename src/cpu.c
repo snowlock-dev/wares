@@ -29,6 +29,19 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->cycles += 8;
             break;
 		}
+		case 0x12: // LD (DE), A
+		{
+			mmu_write_byte(mmu, cpu->de, cpu->a);
+			cpu->cycles += 8;
+			break;
+		}
+		case 0x2A: // LD A, (HL+)
+		{
+			cpu->a = mmu_read_byte(mmu, cpu->hl);
+			cpu->hl++;
+			cpu->cycles += 8;
+			break;
+		}
 		case 0x3E: // LD A, d8
 		{
 			uint8_t val = mmu_read_byte(mmu, cpu->pc);
