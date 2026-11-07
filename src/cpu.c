@@ -46,6 +46,12 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->cycles += 12;
 			break;
 		}
+		case 0x47: // LD B, A
+		{
+			cpu->b = cpu->a;
+			cpu->cycles += 4;
+			break;
+		}
 		default:
 			fprintf(stderr, "\nCRASH: Unimplemented Opcode 0x%02X at PC: 0x%04X\n\n", opcode, current_pc);
 			fprintf(stderr, "Registers:\n");
