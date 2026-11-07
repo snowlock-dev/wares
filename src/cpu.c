@@ -36,6 +36,30 @@ static uint8_t cpu_inc_r8(CPU* cpu, uint8_t val) {
 }
 
 
+static uint8_t cpu_dec_r8(CPU* cpu, uint8_t val) {
+	val--;
+	
+	//Z Flag: set if result is 0
+	if (val == 0) {
+		cpu->f |= FLAG_Z;
+	} else {
+		cpu->f &= FLAG_Z;
+	}
+
+	// H flag: set if lower nibble of original value was 0
+	if ((val & 0x0F) == 0) {
+		cpu->f |= FLAG_H;
+	} else {
+		cpu->f &= FLAG_H;
+	}
+
+	//N flag: set to 1
+	cpu->f |= FLAG_N;
+
+	return val;
+}
+
+
 void cpu_step(CPU* cpu, MMU* mmu) {
 	uint16_t current_pc = cpu->pc;
 
@@ -46,6 +70,12 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 		case 0x00: // NOP
 			cpu->cycles += 4;
 			break;
+		case 0x0D: //DEC C
+		{
+			cpu->c = cpu_dec_r8(cpu, cpu->c);
+			cpu->cycles += 4;
+			break;
+		}
 		case 0x0E: //LD C, d8
 		{
             uint8_t val = mmu_read_byte(mmu, cpu->pc);
@@ -131,6 +161,12 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			break;
 		}
 		case 0x47: // LD B, A
+		{
+			cpu->b = cpu->a;
+			cpu->cycles += 4;
+			break;
+		}
+		case 0x78: // LD A, B
 		{
 			cpu->b = cpu->a;
 			cpu->cycles += 4;
