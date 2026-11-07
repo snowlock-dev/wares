@@ -3,6 +3,11 @@
 #include <stdint.h>
 #include "mmu.h"
 
+#define FLAG_Z (1 << 7)
+#define FLAG_N (1 << 6)
+#define FLAG_H (1 << 5)
+#define FLAG_C (1 << 4)
+
 typedef struct {
 	union {
 		struct { uint8_t f, a; };

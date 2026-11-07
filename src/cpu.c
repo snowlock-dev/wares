@@ -35,6 +35,29 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->cycles += 8;
 			break;
 		}
+		// TODO: turn INC to a helper function inc_r8
+		case 0x1C: // INC E
+		{
+			cpu->e++;
+			
+			// Z Flag: Set if E is 0
+			if (cpu->e == 0) {
+				cpu->f |= FLAG_Z;
+			} else {
+				cpu->f &= ~FLAG_Z;
+			}
+			
+			cpu->f &= ~FLAG_N; //N Flag: reset to 0
+
+			//H Flag: Set if there's carry from bit 3 -> 4
+			if ((cpu->e & 0x0F) == 0) {
+				cpu->f |= FLAG_H;
+			} else {
+				cpu->f &= ~FLAG_H;
+			}
+			cpu->cycles += 4;
+			break;
+		}
 		case 0x2A: // LD A, (HL+)
 		{
 			cpu->a = mmu_read_byte(mmu, cpu->hl);
