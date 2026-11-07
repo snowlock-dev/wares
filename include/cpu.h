@@ -30,6 +30,7 @@ typedef struct {
 	uint16_t pc;
 
 	int cycles;
+	bool ime;
 } CPU;
 
 void cpu_init(CPU* cpu);

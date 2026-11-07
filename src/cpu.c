@@ -9,6 +9,7 @@ void cpu_init(CPU* cpu) {
 	cpu->hl = 0x014D;
 	cpu->sp = 0xFFFE;
 	cpu->pc = 0x0100; // Boot ROM entry point
+	cpu->ime = false;
 }
 
 // HELPER FUNCTIONS
@@ -170,6 +171,12 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 		case 0x78: // LD A, B
 		{
 			cpu->b = cpu->a;
+			cpu->cycles += 4;
+			break;
+		}
+		case 0xF3: // DI
+		{
+			cpu->ime = false;
 			cpu->cycles += 4;
 			break;
 		}
