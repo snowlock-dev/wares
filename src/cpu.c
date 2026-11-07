@@ -13,6 +13,28 @@ void cpu_init(CPU* cpu) {
 
 // HELPER FUNCTIONS
 
+static uint8_t cpu_inc_r8(CPU* cpu, uint8_t val) {
+			val++;
+			
+			// Z Flag: Set if E is 0
+			if (cpu->e == 0) {
+				cpu->f |= FLAG_Z;
+			} else {
+				cpu->f &= ~FLAG_Z;
+			}
+			
+			cpu->f &= ~FLAG_N; //N Flag: reset to 0
+
+			//H Flag: Set if there's carry from bit 3 -> 4
+			if ((cpu->e & 0x0F) == 0) {
+				cpu->f |= FLAG_H;
+			} else {
+				cpu->f &= ~FLAG_H;
+			}
+
+			return val;
+}
+
 
 void cpu_step(CPU* cpu, MMU* mmu) {
 	uint16_t current_pc = cpu->pc;
@@ -38,26 +60,15 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->cycles += 8;
 			break;
 		}
-		// TODO: turn INC to a helper function inc_r8
+		case 0x14: //INC D
+		{
+			cpu->d = cpu_inc_r8(cpu, cpu->d);
+			cpu->cycles += 4;
+			break;
+		}
 		case 0x1C: // INC E
 		{
-			cpu->e++;
-			
-			// Z Flag: Set if E is 0
-			if (cpu->e == 0) {
-				cpu->f |= FLAG_Z;
-			} else {
-				cpu->f &= ~FLAG_Z;
-			}
-			
-			cpu->f &= ~FLAG_N; //N Flag: reset to 0
-
-			//H Flag: Set if there's carry from bit 3 -> 4
-			if ((cpu->e & 0x0F) == 0) {
-				cpu->f |= FLAG_H;
-			} else {
-				cpu->f &= ~FLAG_H;
-			}
+			cpu->e = cpu_inc_r8(cpu, cpu->e);
 			cpu->cycles += 4;
 			break;
 		}
