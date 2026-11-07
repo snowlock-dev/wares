@@ -36,6 +36,16 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->pc = (high << 8) | low;
 			break;
 		}
+		case 0x11: // LD DE, d16
+		{
+            uint8_t low = mmu_read_byte(mmu, cpu ->pc);
+            uint8_t high = mmu_read_byte(mmu, cpu->pc + 1);
+
+            cpu->de = (high << 8) | low;
+            cpu->pc += 2;
+            cpu->cycles += 12;
+            break;
+		}
 		case 0x21: // LD HL, d16
 		{
 			uint8_t low = mmu_read_byte(mmu, cpu ->pc);
