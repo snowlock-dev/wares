@@ -36,6 +36,16 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->pc = (high << 8) | low;
 			break;
 		}
+		case 0x21: // LD HL, d16
+		{
+			uint8_t low = mmu_read_byte(mmu, cpu ->pc);
+			uint8_t high = mmu_read_byte(mmu, cpu->pc + 1);
+
+			cpu->hl = (high << 8) | low;
+			cpu->pc += 2;
+			cpu->cycles += 12;
+			break;
+		}
 		default:
 			fprintf(stderr, "\nCRASH: Unimplemented Opcode 0x%02X at PC: 0x%04X\n\n", opcode, current_pc);
 			fprintf(stderr, "Registers:\n");

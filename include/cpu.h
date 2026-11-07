@@ -23,6 +23,8 @@ typedef struct {
 
 	uint16_t sp;
 	uint16_t pc;
+
+	int cycles;
 } CPU;
 
 void cpu_init(CPU* cpu);
