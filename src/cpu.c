@@ -19,13 +19,22 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 
 	switch (opcode) {
 		case 0x00: // NOP
+			cpu->cycles += 4;
 			break;
-
+		case 0x0E: //LD C, d8
+		{
+            uint8_t val = mmu_read_byte(mmu, cpu->pc);
+            cpu->c = val;
+            cpu->pc++;
+			cpu->cycles += 8;
+            break;
+		}
 		case 0x3E: // LD A, d8
 		{
 			uint8_t val = mmu_read_byte(mmu, cpu->pc);
 			cpu->a = val;
 			cpu->pc++;
+			cpu->cycles += 8;
 			break;
 		}
 
@@ -34,6 +43,7 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			uint8_t low = mmu_read_byte(mmu, cpu->pc);
 			uint8_t high = mmu_read_byte(mmu, cpu->pc + 1);
 			cpu->pc = (high << 8) | low;
+			cpu->cycles += 16;
 			break;
 		}
 		case 0x11: // LD DE, d16
