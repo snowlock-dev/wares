@@ -8,7 +8,7 @@ Wares is a WIP gameboy emulator made in C
 Working on: CPU Opcodes implementation
 Implementing opcodes as required by test ROM's (currently using blargg's test ROM - CPU instruction [01-special.gb])
 
-Status: 31/512 opcodes
+Status: 48/512 opcodes
 
 ## tools & references
 

@@ -80,24 +80,37 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->cycles += 4;
 			break;
 		case 0x01: //LD BC, d16
-        {
-            uint8_t low = mmu_read_byte(mmu, cpu ->pc);
-            uint8_t high = mmu_read_byte(mmu, cpu->pc + 1);
+		{
+			uint8_t low = mmu_read_byte(mmu, cpu ->pc);
+			uint8_t high = mmu_read_byte(mmu, cpu->pc + 1);
 
-            cpu->bc = (high << 8) | low;
-            cpu->pc += 2;
-            cpu->cycles += 12;
-            break;
-        }
+			cpu->bc = (high << 8) | low;
+			cpu->pc += 2;
+			cpu->cycles += 12;
+			break;
+		}
 		case 0x03: // INC BC
-        {
-            uint16_t bc = ((uint16_t)cpu->b << 8) | cpu->c;
-            bc++;
-            cpu->b = (bc>>8) & 0xFF;
-            cpu->c = bc & 0xFF;
-            cpu->cycles += 8;
-            break;
-        }
+		{
+			uint16_t bc = cpu->bc;
+			bc++;
+			cpu->bc = bc;
+			cpu->cycles += 8;
+			break;
+		}
+		case 0x05: //DEC B
+		{
+			cpu->b = cpu_dec_r8(cpu, cpu->b);
+			cpu->cycles += 4;
+			break;
+		}
+		case 0x06: //LD b, d8
+		{
+			uint8_t val = mmu_read_byte(mmu, cpu->pc);
+			cpu->b = val;
+			cpu->pc++;
+			cpu->cycles += 8;
+			break;
+		}
 		case 0x0D: //DEC C
 		{
 			cpu->c = cpu_dec_r8(cpu, cpu->c);
@@ -106,11 +119,11 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 		}
 		case 0x0E: //LD C, d8
 		{
-            uint8_t val = mmu_read_byte(mmu, cpu->pc);
-            cpu->c = val;
-            cpu->pc++;
+			uint8_t val = mmu_read_byte(mmu, cpu->pc);
+			cpu->c = val;
+			cpu->pc++;
 			cpu->cycles += 8;
-            break;
+			break;
 		}
 		case 0x12: // LD (DE), A
 		{
@@ -124,10 +137,35 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->cycles += 4;
 			break;
 		}
+		case 0x1A: // LD A, (DE)
+		{
+			mmu_write_byte(mmu, cpu->a, cpu->de);
+			cpu->cycles += 8;
+			break;
+		}
+		case 0x24: // INC H
+		{
+			cpu->h = cpu_inc_r8(cpu, cpu->h);
+			cpu->cycles += 4;
+			break;
+		}
+		case 0x77: // LD (HL), A
+		{
+			mmu_write_byte(mmu, cpu->hl, cpu->a);
+			cpu->cycles += 8;
+			break;
+		}
 		case 0x1C: // INC E
 		{
 			cpu->e = cpu_inc_r8(cpu, cpu->e);
 			cpu->cycles += 4;
+			break;
+		}
+		case 0x22: // LD (HL+), A
+		{
+			mmu_write_byte(mmu, cpu->hl, cpu->a);
+			cpu->hl++;
+			cpu->cycles += 8;
 			break;
 		}
 		case 0x2A: // LD A, (HL+)
@@ -135,6 +173,12 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->a = mmu_read_byte(mmu, cpu->hl);
 			cpu->hl++;
 			cpu->cycles += 8;
+			break;
+		}
+		case 0x2C: // INC L
+		{
+			cpu->l = cpu_inc_r8(cpu, cpu->l);
+			cpu->cycles += 4;
 			break;
 		}
 		case 0x3E: // LD A, d8
@@ -156,13 +200,21 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 		}
 		case 0x11: // LD DE, d16
 		{
-            uint8_t low = mmu_read_byte(mmu, cpu ->pc);
-            uint8_t high = mmu_read_byte(mmu, cpu->pc + 1);
+			uint8_t low = mmu_read_byte(mmu, cpu ->pc);
+			uint8_t high = mmu_read_byte(mmu, cpu->pc + 1);
 
-            cpu->de = (high << 8) | low;
-            cpu->pc += 2;
-            cpu->cycles += 12;
-            break;
+			cpu->de = (high << 8) | low;
+			cpu->pc += 2;
+			cpu->cycles += 12;
+			break;
+		}
+		case 0x13: // INC DE
+		{
+            uint16_t de = cpu->de;
+            de++;
+            cpu->de = de;
+			cpu->cycles += 8;
+			break;
 		}
 		case 0x18: // JR r8
 		{
@@ -197,10 +249,9 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 		}
 		case 0x23: // INC HL
 		{
-			uint16_t hl = ((uint16_t)cpu->h << 8) | cpu->l;
+			uint16_t hl = cpu->hl;
 			hl++;
-			cpu->h = (hl>>8) & 0xFF;
-			cpu->l = hl & 0xFF;
+			cpu->hl = hl;
 			cpu->cycles += 8;
 			break;
 		}
@@ -248,20 +299,53 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->cycles += 4;
 			break;
 		}
+		case 0xA9: // XOR C
+		{
+			cpu->a ^= cpu->c;
+			cpu->f = 0;
+			if (cpu->a == 0) { cpu->f |= FLAG_Z; }
+			cpu->cycles += 4;
+			break;
+		}
 		case 0xB1: // OR C
 		{
 			cpu_or_r8(cpu, cpu->c);
 			cpu->cycles += 4;
 			break;
 		}
-        case 0xC5: // PUSH BC
-        {
-            cpu->sp -= 2;
-            mmu_write_byte(mmu, cpu->sp + 1, cpu->b);
-            mmu_write_byte(mmu, cpu->sp, cpu->c & 0xF0); // force lower 4 bits to 0
-            cpu->cycles += 16;
-            break;
-        }
+		case 0xC1: //POP BC
+		{
+			cpu->c = mmu_read_byte(mmu, cpu->sp);
+			cpu->b = mmu_read_byte(mmu, cpu->sp + 1);
+			cpu->sp += 2;
+			cpu->cycles += 12;
+			break;
+		}
+		case 0xC4: // CALL NZ, a16
+		{
+			uint8_t low = mmu_read_byte(mmu, cpu->pc++);
+			uint8_t high = mmu_read_byte(mmu, cpu->pc++);
+
+			if (!(cpu->f & FLAG_Z)) {
+				uint16_t target = (high << 8) | low;
+				cpu->sp -= 2;
+				mmu_write_byte(mmu, cpu->sp + 1, (cpu->pc >> 8));
+				mmu_write_byte(mmu, cpu->sp, cpu->pc & 0xFF);
+				cpu->pc = target;
+				cpu->cycles += 24;
+			} else {
+				cpu->cycles += 12;
+			}
+			break;
+		}
+		case 0xC5: // PUSH BC
+		{
+			cpu->sp -= 2;
+			mmu_write_byte(mmu, cpu->sp + 1, cpu->b);
+			mmu_write_byte(mmu, cpu->sp, cpu->c & 0xF0); // force lower 4 bits to 0
+			cpu->cycles += 16;
+			break;
+		}
 		case 0xC9: // RET
 		{
 			uint8_t low = mmu_read_byte(mmu, cpu->sp);
@@ -311,6 +395,17 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->cycles += 16;
 			break;
 		}
+		case 0xE6: // AND d8
+		{
+			uint8_t val = mmu_read_byte(mmu, cpu->pc++);
+			cpu->a &= val;
+			cpu->f = 0;
+			if (cpu->a == 0) { cpu->f |= FLAG_Z; }
+			cpu->f |= FLAG_H; 
+
+			cpu->cycles += 8;
+			break;
+		}
 		case 0xEA: //LD (a16), A
 		{
 			uint8_t low = mmu_read_byte(mmu, cpu->pc++);
@@ -321,23 +416,23 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			cpu->cycles += 16;
 			break;
 		}
-        case 0xF0: //LDH A, (a8)
-        {
-            uint8_t offset = mmu_read_byte(mmu, cpu->pc++);
-            uint16_t address = 0xFF00 | offset;
+		case 0xF0: //LDH A, (a8)
+		{
+			uint8_t offset = mmu_read_byte(mmu, cpu->pc++);
+			uint16_t address = 0xFF00 | offset;
 
-            cpu->a = mmu_read_byte(mmu, address);
-            cpu->cycles += 12;
-            break;
-        }        
+			cpu->a = mmu_read_byte(mmu, address);
+			cpu->cycles += 12;
+			break;
+		}		 
 		case 0xF1: // POP AF
-        {
-            cpu->f = mmu_read_byte(mmu, cpu->sp);
-            cpu->a = mmu_read_byte(mmu, cpu->sp + 1);
-            cpu->sp += 2;
-            cpu->cycles += 12;
-            break;
-        }
+		{
+			cpu->f = mmu_read_byte(mmu, cpu->sp);
+			cpu->a = mmu_read_byte(mmu, cpu->sp + 1);
+			cpu->sp += 2;
+			cpu->cycles += 12;
+			break;
+		}
 		case 0xF3: // DI
 		{
 			cpu->ime = false;
@@ -350,6 +445,29 @@ void cpu_step(CPU* cpu, MMU* mmu) {
 			mmu_write_byte(mmu, cpu->sp + 1, cpu->a);
 			mmu_write_byte(mmu, cpu->sp, cpu->f & 0xF0); // force lower 4 bits to 0
 			cpu->cycles += 16;
+			break;
+		}
+		case 0xFA: //LD A, (a16)
+		{
+			uint8_t low = mmu_read_byte(mmu, cpu->pc++);
+			uint8_t high = mmu_read_byte(mmu, cpu->pc++);
+			uint16_t address = (high << 8) | low;
+
+			cpu->a = mmu_read_byte(mmu, address);
+			cpu->cycles += 16;
+			break;
+		}
+		case 0xFE: // CP d8
+		{
+			uint8_t val = mmu_read_byte(mmu, cpu->pc++);
+			cpu->f = 0;
+
+			if (cpu->a == val) { cpu->f |= FLAG_Z; }
+			cpu->f |= FLAG_N;
+			if ((cpu->a & 0x0F) < (val & 0x0F)) { cpu->f |= FLAG_H; }
+			if (cpu->a < val) cpu->f |= FLAG_C;
+			
+			cpu->cycles += 8;
 			break;
 		}
 		default:
